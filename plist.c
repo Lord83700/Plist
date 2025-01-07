@@ -6,13 +6,18 @@
 
 SIZE_T GetMemoryVirt(DWORD processID){
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
-    PPROCESS_MEMORY_COUNTERS ppsmemCounters;
+    PROCESS_MEMORY_COUNTERS pmc;
     
     if (NULL != hProcess){
-        GetProcessMemoryInfo(hProcess, ppsmemCounters, ppsmemCounters->cb);
-        return ppsmemCounters->QuotaPagedPoolUsage;
+        if(GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc))){
+            CloseHandle(hProcess);
+            return pmc.PagefileUsage;
+        }
+        else {
+            return 0;
+        }
+        
     }
-
 }
 
 void PrintProcessNameAndID()
@@ -27,7 +32,7 @@ void PrintProcessNameAndID()
             DWORD Pri = pe32.pcPriClassBase;
             DWORD Thd = pe32.cntThreads;
             SIZE_T MemVirt = GetMemoryVirt(processId);
-            _tprintf(TEXT("Processus : %s\n    PID : %d\n    MemVirt : %d\n    Pri : %d\n    Thd: %d\n"), pe32.szExeFile, processId, MemVirt, Pri, Thd);
+            _tprintf(TEXT("Processus : %s\n    PID : %d\n    MemVirt : %zu octets\n    Priority : %d\n    Thread: %d\n"), pe32.szExeFile, processId, MemVirt, Pri, Thd);
 
         } while (Process32Next(hSnapshot, &pe32));
     }
