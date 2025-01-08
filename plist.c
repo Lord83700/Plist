@@ -107,68 +107,65 @@ void Plist()
 
     const char *headers[] = {"Name", "PID", "Pri", "Thd", "Priv", "CPU TIME", "Elapsed Time"};
 
-    printf("%-50s %-10s %-10s %-10s %-10s %-10s %-10s\n", headers[0], headers[1], headers[2], headers[3], headers[4], headers[5], headers[6]);
-    printf("---------------------------------------------------------------------------------------------------------------------------\n");
+    printf("%-50s %-10s %-10s %-10s %-10s %-20s %-20s\n", headers[0], headers[1], headers[2], headers[3], headers[4], headers[5], headers[6]);
+    printf("----------------------------------------------------------------------------------------------------------------------------------\n");
 
     if (Process32First(hSnapshot, &pe32)) {
         do {
             HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pe32.th32ProcessID);
 
-            if (hProcess){
-                DWORD processId = pe32.th32ProcessID;
-                DWORD Pri = pe32.pcPriClassBase;
-                DWORD Thd = pe32.cntThreads;
-                SIZE_T MemVirt = GetMemoryVirt(processId);
+            DWORD processId = pe32.th32ProcessID;
+            DWORD Pri = pe32.pcPriClassBase;
+            DWORD Thd = pe32.cntThreads;
+            SIZE_T MemVirt = GetMemoryVirt(processId);
 
-                FILETIME creationTime, exitTime, kernelTime, userTime;
-                char cpuTimeBuffer[20] = "N/A";
-                char elapsedTimeBuffer[20] = "N/A";
+            FILETIME creationTime, exitTime, kernelTime, userTime;
+            char cpuTimeBuffer[20] = "N/A";
+            char elapsedTimeBuffer[20] = "N/A";
 
-                if (GetProcessTimes(hProcess, &creationTime, &exitTime, &kernelTime, &userTime)) {
-                    
-                    ULARGE_INTEGER user, kernel;
-                    user.LowPart = userTime.dwLowDateTime;
-                    user.HighPart = userTime.dwHighDateTime;
-                    kernel.LowPart = kernelTime.dwLowDateTime;
-                    kernel.HighPart = kernelTime.dwHighDateTime;
+            if (GetProcessTimes(hProcess, &creationTime, &exitTime, &kernelTime, &userTime)) {
+                
+                ULARGE_INTEGER user, kernel;
+                user.LowPart = userTime.dwLowDateTime;
+                user.HighPart = userTime.dwHighDateTime;
+                kernel.LowPart = kernelTime.dwLowDateTime;
+                kernel.HighPart = kernelTime.dwHighDateTime;
 
-                    FILETIME totalCpuTime;
-                    totalCpuTime.dwLowDateTime = user.LowPart + kernel.LowPart;
-                    totalCpuTime.dwHighDateTime = user.HighPart + kernel.HighPart;
-                    formatTime(totalCpuTime, cpuTimeBuffer, sizeof(cpuTimeBuffer));
+                FILETIME totalCpuTime;
+                totalCpuTime.dwLowDateTime = user.LowPart + kernel.LowPart;
+                totalCpuTime.dwHighDateTime = user.HighPart + kernel.HighPart;
+                formatTime(totalCpuTime, cpuTimeBuffer, sizeof(cpuTimeBuffer));
 
-                    
-                    SYSTEMTIME nowSystemTime;
-                    FILETIME nowFileTime;
-                    GetSystemTime(&nowSystemTime);
-                    SystemTimeToFileTime(&nowSystemTime, &nowFileTime);
+                
+                SYSTEMTIME nowSystemTime;
+                FILETIME nowFileTime;
+                GetSystemTime(&nowSystemTime);
+                SystemTimeToFileTime(&nowSystemTime, &nowFileTime);
 
-                    ULARGE_INTEGER now, creation;
-                    now.LowPart = nowFileTime.dwLowDateTime;
-                    now.HighPart = nowFileTime.dwHighDateTime;
-                    creation.LowPart = creationTime.dwLowDateTime;
-                    creation.HighPart = creationTime.dwHighDateTime;
+                ULARGE_INTEGER now, creation;
+                now.LowPart = nowFileTime.dwLowDateTime;
+                now.HighPart = nowFileTime.dwHighDateTime;
+                creation.LowPart = creationTime.dwLowDateTime;
+                creation.HighPart = creationTime.dwHighDateTime;
 
-                    if (now.QuadPart > creation.QuadPart) {
-                        ULARGE_INTEGER elapsed;
-                        elapsed.QuadPart = now.QuadPart - creation.QuadPart;
-                        FILETIME elapsedTime;
-                        elapsedTime.dwLowDateTime = elapsed.LowPart;
-                        elapsedTime.dwHighDateTime = elapsed.HighPart;
-                        formatTime(elapsedTime, elapsedTimeBuffer, sizeof(elapsedTimeBuffer));
-                    }
+                if (now.QuadPart > creation.QuadPart) {
+                    ULARGE_INTEGER elapsed;
+                    elapsed.QuadPart = now.QuadPart - creation.QuadPart;
+                    FILETIME elapsedTime;
+                    elapsedTime.dwLowDateTime = elapsed.LowPart;
+                    elapsedTime.dwHighDateTime = elapsed.HighPart;
+                    formatTime(elapsedTime, elapsedTimeBuffer, sizeof(elapsedTimeBuffer));
                 }
-
-                printf("%-50s %-10d %-10d %-10d %-10lu %-10s  %-10s\n",
-                    pe32.szExeFile,
-                    processId,
-                    Pri,
-                    Thd,
-                    MemVirt,  //  dwSize placeholder pour la private memory
-                    cpuTimeBuffer,
-                    elapsedTimeBuffer);
-                //PrintThreadInfo(processId);
             }
+
+            printf("%-50s %-10d %-10d %-10d %-10lu %-20s  %-20s\n",
+                pe32.szExeFile,
+                processId,
+                Pri,
+                Thd,
+                MemVirt,  //  dwSize placeholder pour la private memory
+                cpuTimeBuffer,
+                elapsedTimeBuffer);
         } while (Process32Next(hSnapshot, &pe32));
     }
     CloseHandle(hSnapshot);
@@ -176,7 +173,6 @@ void Plist()
 
 int main( void )
 {
-    
     Plist();
 
     return 0;
