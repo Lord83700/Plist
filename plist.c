@@ -18,12 +18,26 @@ SIZE_T GetMemoryVirt(DWORD processID){
         }
         
     }
+    return 0;
 }
+
+void GetThreadTimeAndState(HANDLE hThread) {
+    FILETIME lpCreationTime, lpExitTime, lpKernelTime, lpUserTime;
+
+    if (GetThreadTimes(hThread, &lpCreationTime, &lpExitTime, &lpKernelTime, &lpUserTime)){
+        if (lpExitTime.dwLowDateTime == 0 && lpExitTime.dwHighDateTime == 0){
+            _tprintf(TEXT("       State : Le Thread est actif\n"));
+        }
+        else {
+            _tprintf(TEXT("       State : Le Thread est inactif\n"));
+        }
+    }
+}   
 
 void PrintThreadInfo(DWORD processID) {
     HANDLE hsnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD,0);
     if(hsnapshot == INVALID_HANDLE_VALUE){
-        _tprintf(TEXT("Unable to create thread snapshot.\n"));
+        _tprintf(TEXT("Impossible de créer une Snapshot\n"));
         return;
     }
 
@@ -36,25 +50,29 @@ void PrintThreadInfo(DWORD processID) {
                 DWORD threadID = te32.th32ThreadID;
 
                 HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION,FALSE,threadID);
+                if (hThread == NULL){
+                    DWORD errorCode = GetLastError();
+                    _tprintf(TEXT("    Impossible d'ouvrir les Thread de %lu.\n        Error Code : %lu\n"), processID, errorCode);
+                    CloseHandle (hsnapshot);
+                    return;
+                }
 
                 DWORD lastError = 0;
                 CONTEXT context = {0};
                 context.ContextFlags = CONTEXT_FULL;
 
-                if(hThread !=NULL ){
+                if(hThread !=NULL){
 
-                    LPVOID entryPoint = NULL;
+                    LPVOID entryPoint = NULL; // A compléter
                     lastError = GetLastError();
 
-                    _tprintf(TEXT("   Thread ID:  %lu\n"), threadID);
-                    _tprintf(TEXT("   Entry Point: .%lu\n"), entryPoint);
-                    _tprintf(TEXT("   State%lu\n"));
-                    _tprintf(TEXT("   Last Error: %lu\n"), lastError);
+                    _tprintf(TEXT("    Thread ID:  %lu\n"), threadID);
+                    _tprintf(TEXT("       Entry Point:\n"));
+                    GetThreadTimeAndState(hThread);
+                    _tprintf(TEXT("       Last Error: %lu\n"), lastError);
 
 
                     CloseHandle(hThread);
-                }else{
-                    _tprintf(TEXT("   Thread ne s'ouvre pas %lu.\n"), threadID);
                 }
             }
         }while(Thread32Next(hsnapshot, &te32));
@@ -62,14 +80,10 @@ void PrintThreadInfo(DWORD processID) {
     }
 
     CloseHandle (hsnapshot);
-
-
-
-
 }
 
 
-void PrintProcessNameAndID()
+void Plist()
 {
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     PROCESSENTRY32 pe32;
@@ -81,7 +95,7 @@ void PrintProcessNameAndID()
             DWORD Pri = pe32.pcPriClassBase;
             DWORD Thd = pe32.cntThreads;
             SIZE_T MemVirt = GetMemoryVirt(processId);
-            _tprintf(TEXT("Processus : %s\n    PID : %d\n    MemVirt : %zu octets\n    Priority : %d\n    Thread: %d\n"), pe32.szExeFile, processId, MemVirt, Pri, Thd);
+            _tprintf(TEXT("Processus : %s\n    PID : %d\n    MemVirt : %zu octets\n    Priority : %d\n    Nombre de Thread: %d\n"), pe32.szExeFile, processId, MemVirt, Pri, Thd);
             PrintThreadInfo(processId);
 
         } while (Process32Next(hSnapshot, &pe32));
@@ -91,8 +105,7 @@ void PrintProcessNameAndID()
 
 int main( void )
 {
-    //_tprintf(TEXT("Name                        Pid Pri Thd  Hnd  Priv    CPU Time     Elapsed Time\n"));
-    PrintProcessNameAndID();
+    Plist();
 
     return 0;
 }
