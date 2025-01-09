@@ -23,67 +23,6 @@ SIZE_T GetMemoryVirt(DWORD processID){
     return 0;
 }
 
-void GetThreadTimeAndState(HANDLE hThread) {
-    FILETIME lpCreationTime, lpExitTime, lpKernelTime, lpUserTime;
-
-    if (GetThreadTimes(hThread, &lpCreationTime, &lpExitTime, &lpKernelTime, &lpUserTime)){
-        if (lpExitTime.dwLowDateTime == 0 && lpExitTime.dwHighDateTime == 0){
-            _tprintf(TEXT("       State : Le Thread est actif\n"));
-        }
-        else {
-            _tprintf(TEXT("       State : Le Thread est inactif\n"));
-        }
-    }
-}   
-
-void PrintThreadInfo(DWORD processID) {
-    HANDLE hsnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD,0);
-    if(hsnapshot == INVALID_HANDLE_VALUE){
-        _tprintf(TEXT("Impossible de créer une Snapshot\n"));
-        return;
-    }
-
-    THREADENTRY32 te32;
-    te32.dwSize = sizeof(THREADENTRY32);
-
-    if(Thread32First(hsnapshot, &te32)){
-        do{
-            if(te32.th32OwnerProcessID==processID){
-                DWORD threadID = te32.th32ThreadID;
-
-                HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION,FALSE,threadID);
-                if (hThread == NULL){
-                    DWORD errorCode = GetLastError();
-                    _tprintf(TEXT("    Impossible d'ouvrir les Thread de %lu.\n        Error Code : %lu\n"), processID, errorCode);
-                    CloseHandle (hsnapshot);
-                    return;
-                }
-
-                DWORD lastError = 0;
-                CONTEXT context = {0};
-                context.ContextFlags = CONTEXT_FULL;
-
-                if(hThread !=NULL){
-
-                    LPVOID entryPoint = NULL; // A compléter
-                    lastError = GetLastError();
-
-                    _tprintf(TEXT("    Thread ID:  %lu\n"), threadID);
-                    _tprintf(TEXT("       Entry Point:\n"));
-                    GetThreadTimeAndState(hThread);
-                    _tprintf(TEXT("       Last Error: %lu\n"), lastError);
-
-
-                    CloseHandle(hThread);
-                }
-            }
-        }while(Thread32Next(hsnapshot, &te32));
-
-    }
-
-    CloseHandle (hsnapshot);
-}
-
 void formatTime(FILETIME ft, char *buffer, size_t bufferSize) {
     
     ULARGE_INTEGER uli;
@@ -99,7 +38,6 @@ void formatTime(FILETIME ft, char *buffer, size_t bufferSize) {
 
     snprintf(buffer, bufferSize, "%02u:%02u:%02u.%03u", hours, minutes, seconds, milliseconds);
 }
-
 
 void Plist()
 {
@@ -204,7 +142,7 @@ void PrintThreadDetails(DWORD processID) {
         return;
     }
 
-    printf("Threads for process %d:\n", processID);
+    printf("Tout les Threads pour le process %d:\n", processID);
     printf("Tid    Pri  State           User Time    Kernel Time   Elapsed Time\n");
 
     if (Thread32First(hThreadSnap, &te32)) {
@@ -269,7 +207,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        printf("detail du thread pour le process ID %d:\n", processID);
+        printf("Detail du thread pour le process ID %d:\n", processID);
         PrintThreadDetails(processID);
     } else {
         // Invalid = man
